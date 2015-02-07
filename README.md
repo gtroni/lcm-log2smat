@@ -11,11 +11,14 @@ structure. 'lcm-log2smat' is based on 'libbot2' script 'bot-log2mat'.
 
 ###Run
 -----
-To convert a LCM log file (data.lcm) to a Matlab file (data.mat)
-$ ./lcm-log2smat data.lcm -o data.mat
+* To convert a LCM log file (data.lcm) to a Matlab file (data.mat)
 
-To convert a LCM log file (data.lcm) to Python Pickle file (data.pkd)
-$ ./lcm-log2smat data.lcm -k  -o data.mat
+  $ ./lcm-log2smat.py data.lcm -o data.mat
+
+
+* To convert a LCM log file (data.lcm) to Python Pickle file (data.pkd)
+
+  $ ./lcm-log2smat.py data.lcm -k  -o data.mat
 
 
 ###Licenses
