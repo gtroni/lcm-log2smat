@@ -6,7 +6,8 @@ Python Pickle (.pkl) files.
 The script converts a LCM log to a "structured" format that is easier to work
 with external tools such as Matlab or Python. The set of messages on a given
 channel can be represented as a structure preserving the original LCM message
-structure. 'lcm-log2smat' is based on 'libbot2' script 'bot-log2mat'.
+structure. 'lcm-log2smat' is based on
+['libbot2'](https://code.google.com/p/libbot/). script 'bot-log2mat'.
 
 
 ###Run
