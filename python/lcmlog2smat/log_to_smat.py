@@ -144,11 +144,12 @@ def parse_and_save (args, opts={}):
         outFname
     except NameError:
         outDir, outFname = os.path.split(os.path.abspath(fname))
-        outFname = outFname.replace(".", "_")
-        outFname = outFname.replace("-", "_")
+       
         if savePickle:
             outFname = outDir + "/" + outFname + ".pkl"
         else:
+            outFname = outFname.replace(".", "_")
+            outFname = outFname.replace("-", "_")
             outFname = outDir + "/" + outFname + ".mat"
 
 
