@@ -48,30 +48,60 @@ def usage():
     sys.exit()
 
 
+def msg_getfields (lcm_msg):
+    return lcm_msg.__slots__
+
+
+def msg_getconstants (lcm_msg):
+    # Get full list of valid attributes
+    fulllist = dir(lcm_msg)
+    # Get constants
+    constantslist = [x for x in fulllist if not(x[0]=='_') 
+                    if not(x=='decode')
+                    if not(x=='encode')
+                    if x not in msg_getfields (lcm_msg)]
+    return constantslist
+
+
 def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-1):
 
     # Initializing channel
     if e_channel not in data:
         data[e_channel] = dict()
-        
+
+        # Iterate each constant of the LCM message
+        constants = msg_getconstants (msg)
+        for i in xrange(len(constants)):
+            myValue = None
+            exec(compile('myValue = msg.' + constants[i], '<string>', 'exec'))
+            data[e_channel][constants[i][:31]] = myValue
+
+    # Get lcm fields and constants
+    fields = msg_getfields (msg)
+
     # Iterate each field of the LCM message
-    for i in xrange(len(msg.__slots__)):
+    for i in xrange(len(fields)):
         myValue = None
-        exec(compile('myValue = msg.' + msg.__slots__[i], '<string>', 'exec'))
-        if (isinstance(myValue,int) or isinstance(myValue,float) or isinstance(myValue,tuple) or isinstance(myValue,str)):
+        exec(compile('myValue = msg.' + fields[i], '<string>', 'exec'))
+        if (isinstance(myValue,int)     or
+            isinstance(myValue,long)    or 
+            isinstance(myValue,float)   or 
+            isinstance(myValue,tuple)   or 
+            isinstance(myValue,unicode) or 
+            isinstance(myValue,str)):
             try:
-                data[e_channel][msg.__slots__[i]].append(myValue)
+                data[e_channel][fields[i][:31]].append(myValue)
             except KeyError, AttributeError:
-                data[e_channel][msg.__slots__[i]] = [(myValue)]
+                data[e_channel][fields[i][:31]] = [(myValue)]
 
         elif (hasattr(myValue,'__slots__')):
-            exec(compile('submsg = msg.' + msg.__slots__[i], '<string>', 'exec'))
-            msg_to_dict (data[e_channel], msg.__slots__[i], submsg, statusMsg, verbose)
+            exec(compile('submsg = msg.' + fields[i], '<string>', 'exec'))
+            msg_to_dict (data[e_channel], fields[i][:31], submsg, statusMsg, verbose)
 
         else:
             if verbose:
                 statusMsg = deleteStatusMsg(statusMsg)
-                sys.stderr.write("ignoring field %s from channel %s. \n" %(msg.__slots__[i], e_channel))
+                sys.stderr.write("ignoring field %s from channel %s. \n" %(fields[i], e_channel))
             continue
 
     # Add extra field with lcm_timestamp
