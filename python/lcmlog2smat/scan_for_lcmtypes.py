@@ -3,6 +3,7 @@ import re
 import os
 import sys
 import pyclbr
+from io import open
 
 def find_lcmtypes():
     alpha_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -37,9 +38,10 @@ def find_lcmtypes():
                 # quick regex test -- check if the file contains the 
                 # word "_get_packed_fingerprint"
                 full_fname = os.path.join(root, fname)
-		try: 
-               	    contents = open(full_fname, "r").read()
-		except IOError:
+                try: 
+                    contents = open(full_fname, "r", encoding='latin1').read()
+                    # contents = open(full_fname, "r").read()
+                except IOError:
                     continue
                 if not regex.search(contents):
                     continue
@@ -97,7 +99,7 @@ def make_lcmtype_dictionary():
             result[fingerprint] = klass
             #print "importing %s" % lcmtype_name
         except:
-            print "Error importing %s" % lcmtype_name
+            print("Error importing %s" % lcmtype_name)
     return result
  
 if __name__ == "__main__":
@@ -107,4 +109,4 @@ if __name__ == "__main__":
     num_types = len(lcmtypes)
     print("Found %d type%s" % (num_types, num_types==1 and "" or "s"))
     for fingerprint, klass in lcmtypes.items():
-        print binascii.hexlify(fingerprint), klass.__module__
+        print(binascii.hexlify(fingerprint), klass.__module__)

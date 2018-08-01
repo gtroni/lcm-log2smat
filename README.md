@@ -18,7 +18,7 @@
   `lcm-log2smat` has been tested only on the GNU/Linux operating systems.
   But it should work in other operating systems running Python.
 
-  To requirements are:
+  The requirements are:
   * [Python](https://www.python.org/)
   * [LCM](https://lcm-proj.github.io/)  
   * [CMake](http://www.cmake.org/) (only required for installation) 

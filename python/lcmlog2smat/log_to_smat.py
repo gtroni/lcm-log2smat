@@ -15,7 +15,15 @@ import types
 import numpy
 import re
 import getopt
-import cPickle as pickle
+
+# Python 2.7 and 3 
+if sys.version_info >= (3, 0):
+    import pickle
+    xrange  = range
+    long    = int
+    unicode = int
+else:
+    import cPickle as pickle
 
 # check which version for mio location
 if sys.version_info < (2, 6):
@@ -23,15 +31,17 @@ if sys.version_info < (2, 6):
 else:
     import scipy.io.matlab.mio
 
+
+
 from lcm import EventLog
-from scan_for_lcmtypes import *
+from .scan_for_lcmtypes import *
 
 longOpts = ["help", "print", "pickle", "format", "separator", "channelsToProcess", "ignore", "outfile", "lcm_packages"]
 
 def usage():
     pname, sname = os.path.split(sys.argv[0])
     sys.stderr.write("usage: % s %s < filename > \n" % (sname, str(longOpts)))
-    print """
+    print( """
     -h --help                 print this message
     -p --print                Output log data to stdout instead of to .mat or .pkl
     -k --pickle               Output log data to python pickle .pkl instead of to .mat
@@ -44,7 +54,7 @@ def usage():
     -l --lcmtype_pkgs=pkgs    load python modules from comma seperated list of packages [pkgs] defaults to ["botlcm"]
     -v                        Verbose
 
-    """
+    """ )
     sys.exit()
 
 
@@ -91,7 +101,7 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
             isinstance(myValue,str)):
             try:
                 data[e_channel][fields[i][:31]].append(myValue)
-            except KeyError, AttributeError:
+            except KeyError as AttributeError:
                 data[e_channel][fields[i][:31]] = [(myValue)]
 
         elif (hasattr(myValue,'__slots__')):
@@ -108,7 +118,7 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
     if lcm_timestamp > 0:
         try:
             data[e_channel]['lcm_timestamp'].append(lcm_timestamp)
-        except KeyError, AttributeError:
+        except KeyError as AttributeError:
             data[e_channel]['lcm_timestamp'] = [(lcm_timestamp)]
 
 
@@ -273,18 +283,19 @@ def parse_and_save (args, opts={}):
                 scipy.io.matlab.mio.savemat(outFname, data, oned_as='row')
 
 
-            mfile = open(dirname + "/" + outBaseName + ".m", "w")
-            loadFunc = """function [d imFnames]=%s()
-full_fname = '%s';
-fname = '%s';
+            mfile = open(dirname + "/" + outBaseName + ".m", "w", encoding='utf-8')
+            loadFunc = """function [d imFnames]={_outBaseName}()
+full_fname = '{_outFname}';
+fname = '{_fullPathName}';
 if (exist(full_fname,'file'))
     filename = full_fname;
 else
     filename = fname;
 end
 d = load(filename);
-""" % (outBaseName, outFname, fullPathName)
+""".format(_outBaseName=outBaseName, _outFname=outFname, _fullPathName=fullPathName)
             
+            print(loadFunc)
             mfile.write(loadFunc);
             mfile.close()
 
@@ -293,9 +304,9 @@ if __name__ == "__main__":
     # Parse command line arguments
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hpktvfs:c:i:o:l:", longOpts)
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print (str(err)) # will print something like "option -a not recognized"
         usage()
     if len(args) != 1:
         usage()
