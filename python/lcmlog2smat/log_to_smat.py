@@ -83,7 +83,6 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
         constants = msg_getconstants (msg)
         for i in xrange(len(constants)):
             myValue = None
-            # exec(compile('myValue = msg.' + constants[i], '<string>', 'exec'))
             myValue = eval('msg.' + constants[i])
             data[e_channel][constants[i][:31]] = myValue
 
@@ -93,7 +92,6 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
     # Iterate each field of the LCM message
     for i in xrange(len(fields)):
         myValue = None
-        # exec(compile('myValue = msg.' + fields[i], '<string>', 'exec'))
         myValue = eval(' msg.' + fields[i])
         if (isinstance(myValue,int)     or
             isinstance(myValue,long)    or 
@@ -107,7 +105,6 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
                 data[e_channel][fields[i][:31]] = [(myValue)]
 
         elif (hasattr(myValue,'__slots__')):
-            # exec(compile('submsg = msg.' + fields[i], '<string>', 'exec'))
             submsg = eval('msg.' + fields[i])
             msg_to_dict (data[e_channel], fields[i][:31], submsg, statusMsg, verbose)
 
@@ -206,7 +203,6 @@ def parse_and_save (args, opts={}):
 
     print("Searching for LCM types...")
     type_db = make_lcmtype_dictionary()
-    # print(type_db)
 
     channelsToProcess = re.compile(channelsToProcess)
     channelsToIgnore = re.compile(channelsToIgnore)
