@@ -11,13 +11,12 @@
 import os
 import sys
 import re
-import getopt
 import pickle
 long    = int
 unicode = int
 import scipy.io.matlab.mio
 from lcm import EventLog
-from .scan_for_lcmtypes import find_lcmtypes, make_lcmtype_dictionary
+from .scan_for_lcmtypes import make_lcmtype_dictionary
 
 longOpts = ["help", "print", "pickle", "format", "separator", "channelsToProcess", "ignore", "outfile", "lcm_packages"]
 
