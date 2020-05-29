@@ -5,36 +5,19 @@
 # channel can be represented as a structure preserving the original lcm message
 # structure.
 # 
-# lcm-log2smat is based on libbot2 script bot-log2mat.
-# Modified by G.Troni
+# pylcm is based on lcm-log2smat which is based on libbot2 script bot-log2mat.
+# Modified by Duan Yutong
 
 import os
 import sys
-import binascii
-import types
-import numpy
 import re
 import getopt
-
-# Python 2.7 and 3 
-if sys.version_info >= (3, 0):
-    import pickle
-    xrange  = range
-    long    = int
-    unicode = int
-else:
-    import cPickle as pickle
-
-# check which version for mio location
-if sys.version_info < (2, 6):
-    import scipy.io.mio
-else:
-    import scipy.io.matlab.mio
-
-
-
+import pickle
+long    = int
+unicode = int
+import scipy.io.matlab.mio
 from lcm import EventLog
-from .scan_for_lcmtypes import *
+from .scan_for_lcmtypes import find_lcmtypes, make_lcmtype_dictionary
 
 longOpts = ["help", "print", "pickle", "format", "separator", "channelsToProcess", "ignore", "outfile", "lcm_packages"]
 
@@ -81,7 +64,7 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
 
         # Iterate each constant of the LCM message
         constants = msg_getconstants (msg)
-        for i in xrange(len(constants)):
+        for i in range(len(constants)):
             myValue = None
             myValue = eval('msg.' + constants[i])
             data[e_channel][constants[i][:31]] = myValue
@@ -90,7 +73,7 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
     fields = msg_getfields (msg)
 
     # Iterate each field of the LCM message
-    for i in xrange(len(fields)):
+    for i in range(len(fields)):
         myValue = None
         myValue = eval(' msg.' + fields[i])
         if (isinstance(myValue,int)     or
@@ -130,17 +113,11 @@ def deleteStatusMsg(statMsg):
     return ""
 
 
-
-def parse_and_save (args, opts={}):
-
-    if isinstance(args, (list, tuple)):
-        fname = args[0]
-    elif isinstance(args, str):
-        fname = args
-    else:
-        usage()
-
-
+def parse_lcm(fname, opts=None):
+    """fname is the path to LCM log, opts is a dict of options
+    
+    Bu default, if opts=None, return dict.
+    """
     #default options
     lcm_packages = [ "botlcm"]
 
@@ -154,31 +131,34 @@ def parse_and_save (args, opts={}):
     checkIgnore = False
     channelsToProcess = ".*"
     separator = ' '
-    for o, a in opts:
-        if o == "-v":
-            verbose = True
-        elif o in ("-h", "--help"):
-            usage()
-        elif o in ("-p", "--print"):
-            printOutput = True
-        elif o in ("-k", "--pickle"):
-            savePickle = True
-        elif o in ("-f", "--format"):
-            printFormat = True
-        elif o in ("-s", "--separator="):
-            separator = a
-        elif o in ("-o", "--outfile="):
-            outFname = a
-            printFname = a
-        elif o in ("-c", "--channelsToProcess="):
-            channelsToProcess = a
-        elif o in ("-i", "--ignore="):
-            channelsToIgnore = a
-            checkIgnore = True
-        elif o in ("-l", "--lcm_packages="):
-            lcm_packages = a.split(",")
-        else:
-            assert False, "unhandled option"
+    if opts is None:
+        returnDict = True
+    else:
+        for o, a in opts.items():
+            if o == "-v":
+                verbose = True
+            elif o in ("-h", "--help"):
+                usage()
+            elif o in ("-p", "--print"):
+                printOutput = True
+            elif o in ("-k", "--pickle"):
+                savePickle = True
+            elif o in ("-f", "--format"):
+                printFormat = True
+            elif o in ("-s", "--separator="):
+                separator = a
+            elif o in ("-o", "--outfile="):
+                outFname = a
+                printFname = a
+            elif o in ("-c", "--channelsToProcess="):
+                channelsToProcess = a
+            elif o in ("-i", "--ignore="):
+                channelsToIgnore = a
+                checkIgnore = True
+            elif o in ("-l", "--lcm_packages="):
+                lcm_packages = a.split(",")
+            else:
+                assert f"unhandled option key {o}, value{a}"
 
     try:
         outFname
@@ -200,8 +180,8 @@ def parse_and_save (args, opts={}):
     fullBaseName = dirname + "/" + outBaseName
 
     data = {}
-
-    print("Searching for LCM types...")
+    if printOutput:
+        print("Searching for LCM types...")
     type_db = make_lcmtype_dictionary()
 
     channelsToProcess = re.compile(channelsToProcess)
@@ -209,14 +189,11 @@ def parse_and_save (args, opts={}):
     log = EventLog(fname, "r")
 
     if printOutput:
-        sys.stderr.write("opened % s, printing output to %s \n" % (fname, printFname))
+        sys.stdout.write("opened % s, printing output to %s \n" % (fname, printFname))
         if printFname == "stdout":
             printFile = sys.stdout
         else:
             printFile = open(printFname, "w")
-    else:
-        sys.stderr.write("opened % s, outputing to % s\n" % (fname, outFname))
-
     ignored_channels = []
     msgCount = 0
     statusMsg = ""
@@ -254,7 +231,7 @@ def parse_and_save (args, opts={}):
             continue
         
         msgCount = msgCount + 1
-        if (msgCount % 5000) == 0:
+        if printOutput and (msgCount % 5000) == 0:
             statusMsg = deleteStatusMsg(statusMsg)
             statusMsg = "read % d messages, % d %% done" % (msgCount, log.tell() / float(log.size())*100)
             sys.stderr.write(statusMsg)
@@ -262,8 +239,9 @@ def parse_and_save (args, opts={}):
         
         msg_to_dict (data, e.channel, msg, statusMsg, verbose, (e.timestamp - startTime) / 1e6)
 
-
-
+    if returnDict:
+        return data
+    
     deleteStatusMsg(statusMsg)
     if not printOutput:
                 
@@ -298,18 +276,3 @@ d = load(filename);
             print(loadFunc)
             mfile.write(loadFunc);
             mfile.close()
-
-
-if __name__ == "__main__":
-    # Parse command line arguments
-    try:
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "hpktvfs:c:i:o:l:", longOpts)
-    except getopt.GetoptError as err:
-        # print help information and exit:
-        print (str(err)) # will print something like "option -a not recognized"
-        usage()
-    if len(args) != 1:
-        usage()
-
-    # Run main parser
-    parse_and_save (args,opts)
