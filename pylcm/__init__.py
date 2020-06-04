@@ -120,8 +120,6 @@ def parse_lcm(fname, opts=None):
     #default options
     lcm_packages = [ "botlcm"]
 
-    printFname = "stdout"
-    printFile = sys.stdout
     verbose = False
     printOutput = False
     savePickle  = False
@@ -189,10 +187,6 @@ def parse_lcm(fname, opts=None):
 
     if printOutput:
         sys.stdout.write("opened % s, printing output to %s \n" % (fname, printFname))
-        if printFname == "stdout":
-            printFile = sys.stdout
-        else:
-            printFile = open(printFname, "w")
     ignored_channels = []
     msgCount = 0
     statusMsg = ""
@@ -249,9 +243,8 @@ def parse_lcm(fname, opts=None):
         if savePickle:
 
             # Pickle the list/dictonary using the highest protocol available.
-            output = open(outFname, 'wb')
-            pickle.dump(data, output, -1)
-            output.close()
+            with open(outFname, 'wb') as f:
+                pickle.dump(data, f, -1)
         else:
             # Matlab format using scipy
             if sys.version_info < (2, 6):
@@ -260,8 +253,8 @@ def parse_lcm(fname, opts=None):
                 scipy.io.matlab.mio.savemat(outFname, data, oned_as='row')
 
 
-            mfile = open(dirname + "/" + outBaseName + ".m", "w", encoding='utf-8')
-            loadFunc = """function [d imFnames]={_outBaseName}()
+            with open(dirname + "/" + outBaseName + ".m", "w", encoding='utf-8') as mfile:
+                loadFunc = """function [d imFnames]={_outBaseName}()
 full_fname = '{_outFname}';
 fname = '{_fullPathName}';
 if (exist(full_fname,'file'))
@@ -272,6 +265,5 @@ end
 d = load(filename);
 """.format(_outBaseName=outBaseName, _outFname=outFname, _fullPathName=fullPathName)
             
-            print(loadFunc)
-            mfile.write(loadFunc);
-            mfile.close()
+                print(loadFunc)
+                mfile.write(loadFunc)
