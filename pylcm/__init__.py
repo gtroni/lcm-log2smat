@@ -6,7 +6,7 @@
 # structure.
 # 
 # pylcm is based on lcm-log2smat which is based on libbot2 script bot-log2mat.
-# Modified by Duan Yutong
+# Modified by Duan Yutong, MKuoch
 
 import os
 import sys
@@ -17,6 +17,12 @@ unicode = int
 import scipy.io.matlab.mio
 from lcm import EventLog
 from .scan_for_lcmtypes import make_lcmtype_dictionary
+import robotlocomotion as rl
+import inspect
+import imageio
+import numpy as np
+from io import BytesIO
+from bot_core import image_t
 
 longOpts = ["help", "print", "pickle", "format", "separator", "channelsToProcess", "ignore", "outfile", "lcm_packages"]
 
@@ -55,7 +61,7 @@ def msg_getconstants (lcm_msg):
     return constantslist
 
 
-def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-1):
+def msg_to_dict (data, e_channel, msg, status_msg, verbose=False, lcm_timestamp=-1):
 
     # Initializing channel
     if e_channel not in data:
@@ -64,35 +70,48 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
         # Iterate each constant of the LCM message
         constants = msg_getconstants (msg)
         for i in range(len(constants)):
-            myValue = None
-            myValue = eval('msg.' + constants[i])
-            data[e_channel][constants[i][:31]] = myValue
+            my_value = None
+            my_value = eval('msg.' + constants[i])
+            data[e_channel][constants[i][:31]] = my_value
 
     # Get lcm fields and constants
     fields = msg_getfields (msg)
 
     # Iterate each field of the LCM message
     for i in range(len(fields)):
-        myValue = None
-        myValue = eval(' msg.' + fields[i])
-        if (isinstance(myValue,int)     or
-            isinstance(myValue,long)    or 
-            isinstance(myValue,float)   or 
-            isinstance(myValue,tuple)   or 
-            isinstance(myValue,unicode) or 
-            isinstance(myValue,str)):
+        my_value = None
+        my_value = eval(' msg.' + fields[i])
+        if (isinstance(my_value,int)     or
+            isinstance(my_value,long)    or 
+            isinstance(my_value,float)   or 
+            isinstance(my_value,tuple)   or 
+            isinstance(my_value,unicode) or 
+            isinstance(my_value,str)):
             try:
-                data[e_channel][fields[i][:31]].append(myValue)
+                data[e_channel][fields[i][:31]].append(my_value)
             except KeyError as AttributeError:
-                data[e_channel][fields[i][:31]] = [(myValue)]
-
-        elif (hasattr(myValue,'__slots__')):
+                data[e_channel][fields[i][:31]] = [(my_value)]
+                
+        elif (hasattr(my_value,'__slots__')):
             submsg = eval('msg.' + fields[i])
-            msg_to_dict (data[e_channel], fields[i][:31], submsg, statusMsg, verbose)
-
+            msg_to_dict (data[e_channel], fields[i][:31], submsg, status_msg, verbose)
+        
+        # Handles getting RBGD data from 'images' field
+        elif (fields[i] == "images" and 
+              isinstance(my_value, list) and 
+              isinstance(my_value[0], image_t)):
+            # Read image_t.data to numpy arrays
+            color_image = np.array(imageio.imread(my_value[0].data))
+            #depth_image = np.array(imageio.imread(my_value[1].data))
+            try:
+                data[e_channel]['RGB'].append(color_image)
+                #data[e_channel]['Depth'].append(depth_image)
+            except KeyError as AttributeError:
+                data[e_channel]['RGB'] = [(color_image)]
+                #data[e_channel]['Depth'] = [(depth_image)]
         else:
             if verbose:
-                statusMsg = deleteStatusMsg(statusMsg)
+                status_msg = delete_status_message(status_msg)
                 sys.stderr.write("ignoring field %s from channel %s. \n" %(fields[i], e_channel))
             continue
 
@@ -104,13 +123,12 @@ def msg_to_dict (data, e_channel, msg, statusMsg, verbose=False, lcm_timestamp=-
             data[e_channel]['lcm_timestamp'] = [(lcm_timestamp)]
 
 
-def deleteStatusMsg(statMsg):
-    if statMsg:
+def delete_status_message(stat_msg):
+    if stat_msg:
         sys.stderr.write("\r")
-        sys.stderr.write(" " * (len(statMsg)))
+        sys.stderr.write(" " * (len(stat_msg)))
         sys.stderr.write("\r")
     return ""
-
 
 def parse_lcm(fname, opts=None):
     """fname is the path to LCM log, opts is a dict of options
@@ -128,6 +146,7 @@ def parse_lcm(fname, opts=None):
     checkIgnore = False
     channelsToProcess = ".*"
     separator = ' '
+    returnDict = False
     if opts is None:
         returnDict = True
     else:
@@ -189,7 +208,7 @@ def parse_lcm(fname, opts=None):
         sys.stdout.write("opened % s, printing output to %s \n" % (fname, printFname))
     ignored_channels = []
     msgCount = 0
-    statusMsg = ""
+    status_msg = ""
     startTime = 0
 
 
@@ -203,7 +222,7 @@ def parse_lcm(fname, opts=None):
         if ((checkIgnore and channelsToIgnore.match(e.channel) and len(channelsToIgnore.match(e.channel).group())==len(e.channel)) \
              or (not channelsToProcess.match(e.channel))):
             if verbose:
-                statusMsg = deleteStatusMsg(statusMsg)
+                status_msg = delete_status_message(status_msg)
                 sys.stderr.write("ignoring channel %s\n" % e.channel)
             ignored_channels.append(e.channel)
             continue
@@ -212,30 +231,30 @@ def parse_lcm(fname, opts=None):
         lcmtype = type_db.get(packed_fingerprint, None)
         if not lcmtype:
             if verbose:
-                statusMsg = deleteStatusMsg(statusMsg)
+                status_msg = delete_status_message(status_msg)
                 sys.stderr.write("ignoring channel %s -not a known LCM type\n" % e.channel)
             ignored_channels.append(e.channel)
             continue
         try:
             msg = lcmtype.decode(e.data)
         except:
-            statusMsg = deleteStatusMsg(statusMsg)
+            status_msg = delete_status_message(status_msg)
             sys.stderr.write("error: couldn't decode msg on channel %s\n" % e.channel)
             continue
         
         msgCount = msgCount + 1
         if printOutput and (msgCount % 5000) == 0:
-            statusMsg = deleteStatusMsg(statusMsg)
-            statusMsg = "read % d messages, % d %% done" % (msgCount, log.tell() / float(log.size())*100)
-            sys.stderr.write(statusMsg)
+            status_msg = delete_status_message(status_msg)
+            status_msg = "read % d messages, % d %% done" % (msgCount, log.tell() / float(log.size())*100)
+            sys.stderr.write(status_msg)
             sys.stderr.flush()
         
-        msg_to_dict (data, e.channel, msg, statusMsg, verbose, (e.timestamp - startTime) / 1e6)
+        msg_to_dict (data, e.channel, msg, status_msg, verbose, (e.timestamp - startTime) / 1e6)
 
     if returnDict:
         return data
     
-    deleteStatusMsg(statusMsg)
+    delete_status_message(status_msg)
     if not printOutput:
                 
         sys.stderr.write("loaded all %d messages, saving to % s\n" % (msgCount, outFname))
