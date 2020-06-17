@@ -95,7 +95,7 @@ def msg_to_dict (data, e_channel, msg, status_msg, verbose=False, lcm_timestamp=
         elif (hasattr(my_value,'__slots__')):
             submsg = eval('msg.' + fields[i])
             msg_to_dict (data[e_channel], fields[i][:31], submsg, status_msg, verbose)
-        
+ 
         # Handles getting RBGD data from 'images' field
         elif (fields[i] == "images" and 
               isinstance(my_value, list) and 
