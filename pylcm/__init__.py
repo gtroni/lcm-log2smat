@@ -120,13 +120,13 @@ def msg_to_dict(  # noqa: C901
             and isinstance(my_value[0], image_t)
         ):
             # Read image_t.data to numpy arrays
-            color_image = np.array(imageio.imread(my_value[0].data))
+            rgb_image = np.array(imageio.imread(my_value[0].data))
             # depth_image = np.array(imageio.imread(my_value[1].data))
             try:
-                data[e_channel]["RGB"].append(color_image)
+                data[e_channel]["RGB"].append(rgb_image)
                 # data[e_channel]['Depth'].append(depth_image)
             except KeyError:
-                data[e_channel]["RGB"] = [color_image]
+                data[e_channel]["RGB"] = [rgb_image]
                 # data[e_channel]['Depth'] = [depth_image]
         else:
             if verbose:
