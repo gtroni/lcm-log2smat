@@ -66,7 +66,7 @@ def msg_getfields(lcm_msg):
 
 
 def msg_getconstants(lcm_msg):
-    "Get the constants of lcm_msg." ""
+    """Get the constants of lcm_msg."""
     # Get full list of valid attributes
     fulllist = dir(lcm_msg)
     # Get constants
