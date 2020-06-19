@@ -13,6 +13,7 @@ import os
 import pickle
 import re
 import sys
+import zlib
 
 import numpy as np
 import scipy.io.matlab.mio
@@ -121,13 +122,16 @@ def msg_to_dict(  # noqa: C901
         ):
             # Read image_t.data to numpy arrays
             rgb_image = np.array(imageio.imread(my_value[0].data))
-            # depth_image = np.array(imageio.imread(my_value[1].data))
+            depth_data = zlib.decompress(my_value[1].data)
+            depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
+                480, 640
+            )
             try:
                 data[e_channel]["RGB"].append(rgb_image)
-                # data[e_channel]['Depth'].append(depth_image)
+                data[e_channel]["depth"].append(depth_image)
             except KeyError:
                 data[e_channel]["RGB"] = [rgb_image]
-                # data[e_channel]['Depth'] = [depth_image]
+                data[e_channel]["depth"] = [depth_image]
         else:
             if verbose:
                 status_msg = delete_status_message(status_msg)
