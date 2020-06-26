@@ -83,7 +83,13 @@ def msg_getconstants(lcm_msg):
 
 
 def msg_to_dict(  # noqa: C901
-    data, e_channel, msg, status_msg, verbose=False, lcm_timestamp=-1
+    data,
+    e_channel,
+    msg,
+    status_msg,
+    verbose=False,
+    lcm_timestamp=-1,
+    decompress_jpeg=True,
 ):
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
@@ -111,7 +117,12 @@ def msg_to_dict(  # noqa: C901
         elif hasattr(my_value, "__slots__"):
             submsg = eval("msg." + field)  # pylint: disable=W0123
             msg_to_dict(
-                data[e_channel], field[:31], submsg, status_msg, verbose
+                data[e_channel],
+                field[:31],
+                submsg,
+                status_msg,
+                verbose,
+                decompress_jpeg=decompress_jpeg,
             )
 
         # Handles getting RBGD data from 'images' field
@@ -120,8 +131,12 @@ def msg_to_dict(  # noqa: C901
             and isinstance(my_value, list)
             and isinstance(my_value[0], image_t)
         ):
-            # Read image_t.data to numpy arrays
-            rgb_image = np.array(imageio.imread(my_value[0].data))
+            if decompress_jpeg:
+                # Read image_t.data to numpy arrays
+                rgb_image = np.array(imageio.imread(my_value[0].data))
+            else:
+                # Else, keep RGB data compressed
+                rgb_image = my_value[0].data
             depth_data = zlib.decompress(my_value[1].data)
             depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
                 480, 640
@@ -158,7 +173,9 @@ def delete_status_message(stat_msg):
     return ""
 
 
-def parse_lcm(fname, opts=None):  # noqa: C901 pylint: disable=R1710
+def parse_lcm(  # noqa: C901
+    fname, opts=None, decompress_jpeg=True
+):  # noqa: C901 pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """fname is the path to LCM log, opts is a dict of options
 
@@ -284,6 +301,7 @@ def parse_lcm(fname, opts=None):  # noqa: C901 pylint: disable=R1710
             status_msg,
             verbose,
             (e.timestamp - startTime) / 1e6,
+            decompress_jpeg=decompress_jpeg,
         )
 
     if return_dict:
