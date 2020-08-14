@@ -90,7 +90,7 @@ def msg_to_dict(  # noqa: C901
     verbose=False,
     lcm_timestamp=-1,
     decompress_jpeg=True,
-    image_dimensions=(640, 480),
+    depth_image_shape=(640, 480),
 ):
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
@@ -124,7 +124,7 @@ def msg_to_dict(  # noqa: C901
                 status_msg,
                 verbose,
                 decompress_jpeg=decompress_jpeg,
-                image_dimensions=image_dimensions,
+                depth_image_shape=depth_image_shape,
             )
 
         # Handles getting RBGD data from 'images' field
@@ -141,7 +141,7 @@ def msg_to_dict(  # noqa: C901
                 rgb_image = my_value[0].data
             depth_data = zlib.decompress(my_value[1].data)
             depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
-                image_dimensions[1], image_dimensions[0]
+                depth_image_shape[1], depth_image_shape[0]
             )
             try:
                 data[e_channel]["RGB"].append(rgb_image)
@@ -176,7 +176,7 @@ def delete_status_message(stat_msg):
 
 
 def parse_lcm(  # noqa: C901
-    fname, opts=None, decompress_jpeg=True, image_dimensions=(640, 480)
+    fname, opts=None, decompress_jpeg=True, depth_image_shape=(640, 480)
 ):  # noqa: C901 pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
@@ -185,8 +185,8 @@ def parse_lcm(  # noqa: C901
     fname -- path to LCM log
     opts -- dict of options. Default None returns dict
     decompress_jpeg -- whether or not to decompress jpeg. Default True
-    image_dimensions -- image dimensions in LCM log. Default assumed
-                        to be 640x480.
+    depth_image_shape -- dimensions of depth image in LCM log. 
+                         Default assumed to be 640x480.
     """
     # Default options
     verbose = False
@@ -309,7 +309,7 @@ def parse_lcm(  # noqa: C901
             verbose,
             (e.timestamp - startTime) / 1e6,
             decompress_jpeg=decompress_jpeg,
-            image_dimensions=image_dimensions,
+            depth_image_shape=depth_image_shape,
         )
 
     if return_dict:
