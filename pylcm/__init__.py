@@ -90,6 +90,7 @@ def msg_to_dict(  # noqa: C901
     verbose=False,
     lcm_timestamp=-1,
     decompress_jpeg=True,
+    depth_image_shape=(480, 640),
 ):
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
@@ -123,6 +124,7 @@ def msg_to_dict(  # noqa: C901
                 status_msg,
                 verbose,
                 decompress_jpeg=decompress_jpeg,
+                depth_image_shape=depth_image_shape,
             )
 
         # Handles getting RBGD data from 'images' field
@@ -139,7 +141,7 @@ def msg_to_dict(  # noqa: C901
                 rgb_image = my_value[0].data
             depth_data = zlib.decompress(my_value[1].data)
             depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
-                480, 640
+                depth_image_shape
             )
             try:
                 data[e_channel]["RGB"].append(rgb_image)
@@ -174,12 +176,17 @@ def delete_status_message(stat_msg):
 
 
 def parse_lcm(  # noqa: C901
-    fname, opts=None, decompress_jpeg=True
+    fname, opts=None, decompress_jpeg=True, depth_image_shape=(480, 640)
 ):  # noqa: C901 pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
-    """fname is the path to LCM log, opts is a dict of options
+    """Parse LCM log.
 
-    By default, if opts=None, return dict.
+    Keyword arguments:
+    fname -- path to LCM log
+    opts -- dict of options. Default None returns dict
+    decompress_jpeg -- whether or not to decompress jpeg. Default True
+    depth_image_shape -- dimensions of depth image in LCM log. 
+                         Default assumed to be 640x480.
     """
     # Default options
     verbose = False
@@ -302,6 +309,7 @@ def parse_lcm(  # noqa: C901
             verbose,
             (e.timestamp - startTime) / 1e6,
             decompress_jpeg=decompress_jpeg,
+            depth_image_shape=depth_image_shape,
         )
 
     if return_dict:
