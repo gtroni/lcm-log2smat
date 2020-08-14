@@ -90,7 +90,7 @@ def msg_to_dict(  # noqa: C901
     verbose=False,
     lcm_timestamp=-1,
     decompress_jpeg=True,
-    depth_image_shape=(640, 480),
+    depth_image_shape=(480, 640),
 ):
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
@@ -141,7 +141,7 @@ def msg_to_dict(  # noqa: C901
                 rgb_image = my_value[0].data
             depth_data = zlib.decompress(my_value[1].data)
             depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
-                depth_image_shape[1], depth_image_shape[0]
+                depth_image_shape
             )
             try:
                 data[e_channel]["RGB"].append(rgb_image)
@@ -176,7 +176,7 @@ def delete_status_message(stat_msg):
 
 
 def parse_lcm(  # noqa: C901
-    fname, opts=None, decompress_jpeg=True, depth_image_shape=(640, 480)
+    fname, opts=None, decompress_jpeg=True, depth_image_shape=(480, 640)
 ):  # noqa: C901 pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
