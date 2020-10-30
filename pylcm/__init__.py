@@ -176,7 +176,7 @@ def delete_status_message(stat_msg):
 
 def parse_lcm(  # noqa: C901
     fname, opts=None, decompress_jpeg=True, depth_image_shape=(480, 640)
-):  # noqa: C901 pylint: disable=R1710
+):  # pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
 
@@ -194,10 +194,7 @@ def parse_lcm(  # noqa: C901
     channelsToIgnore = ""
     checkIgnore = False
     channelsToProcess = ".*"
-    return_dict = False
-    if opts is None:
-        return_dict = True
-    else:
+    if opts is not None:
         for o, a in opts.items():
             if o == "-v":
                 verbose = True
@@ -311,9 +308,6 @@ def parse_lcm(  # noqa: C901
             depth_image_shape=depth_image_shape,
         )
 
-    if return_dict:
-        return data
-
     delete_status_message(status_msg)
     if not printOutput:
         sys.stderr.write(
@@ -349,3 +343,5 @@ d = load(filename);
                 )
                 print(loadFunc)
                 mfile.write(loadFunc)
+
+    return data
