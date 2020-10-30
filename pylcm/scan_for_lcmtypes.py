@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# """Script to find lcm types."""
+#!/usr/bin/python3
+"""Find all lcmtypes defined in the system by waorking through the paths."""
 import os
 import pyclbr
 import re

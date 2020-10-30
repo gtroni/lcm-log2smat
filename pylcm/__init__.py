@@ -1,6 +1,6 @@
 """Convert a LCM log to a python dict and optionally export .pkl or .mat."""
 
-# !/usr/bin/python
+# !/usr/bin/python3
 #
 # Converts a LCM log to a "structured" format that is easier to work with
 # external tools such as Matlab or Python. The set of messages on a given
