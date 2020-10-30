@@ -94,7 +94,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
     if e_channel not in data:
-        data[e_channel] = dict()
+        data[e_channel] = {}
 
         # Iterate each constant of the LCM message
         constants = msg_getconstants(msg)
