@@ -181,7 +181,7 @@ def parse_lcm(  # noqa: C901
     """Parse LCM log.
 
     Keyword arguments:
-    fname -- path to LCM log
+    fname -- absolute path to LCM log, relative path is not supported
     opts -- dict of options. Default None returns dict
     decompress_jpeg -- whether or not to decompress jpeg. Default True
     depth_image_shape -- dimensions of depth image in LCM log.
@@ -191,6 +191,7 @@ def parse_lcm(  # noqa: C901
     verbose = False
     printOutput = False
     savePickle = False
+    saveMat = False
     channelsToIgnore = ""
     checkIgnore = False
     channelsToProcess = ".*"
@@ -204,6 +205,8 @@ def parse_lcm(  # noqa: C901
                 printOutput = True
             elif o in ("-k", "--pickle"):
                 savePickle = True
+            elif o in ("-m", "--mat"):
+                saveMat = True
             elif o in ("-o", "--outfile="):
                 outFname = a
                 printFname = a
@@ -222,7 +225,7 @@ def parse_lcm(  # noqa: C901
 
         if savePickle:
             outFname = outDir + "/" + outFname + ".pkl"
-        else:
+        elif saveMat:
             outFname = outFname.replace(".", "_")
             outFname = outFname.replace("-", "_")
             outFname = outDir + "/" + outFname + ".mat"
@@ -232,7 +235,7 @@ def parse_lcm(  # noqa: C901
     outBaseName = ".".join(os.path.basename(outFname).split(".")[0:-1])
 
     data = {}
-    if printOutput:
+    if verbose:
         print("Searching for LCM types...")
     type_db = make_lcmtype_dictionary()
 
@@ -241,9 +244,7 @@ def parse_lcm(  # noqa: C901
     log = EventLog(fname, "r")
 
     if printOutput:
-        sys.stdout.write(
-            "opened % s, printing output to %s \n" % (fname, printFname)
-        )
+        print("opened % s, printing output to %s \n" % (fname, printFname))
     ignored_channels = []
     msgCount = 0
     status_msg = ""
@@ -310,14 +311,12 @@ def parse_lcm(  # noqa: C901
 
     delete_status_message(status_msg)
     if not printOutput:
-        sys.stderr.write(
-            "loaded all %d messages, saving to % s\n" % (msgCount, outFname)
-        )
+        print("loaded all %d messages, saving to % s\n" % (msgCount, outFname))
         if savePickle:
             # Pickle the list/dictonary using the highest protocol available.
             with open(outFname, "wb") as f:
                 pickle.dump(data, f, -1)
-        else:
+        elif saveMat:
             # Matlab format using scipy
             if sys.version_info < (2, 6):
                 scipy.io.mio.savemat(outFname, data)
