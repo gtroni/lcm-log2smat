@@ -96,7 +96,6 @@ def make_lcmtype_dictionary():
 
     The primary use for this dictionary is to automatically identify and
     decode an LCM message.
-
     """
     lcmtypes = find_lcmtypes()
 
@@ -110,9 +109,8 @@ def make_lcmtype_dictionary():
             klass = getattr(mod, type_basename)
             fingerprint = klass._get_packed_fingerprint()
             result[fingerprint] = klass
-            # print "importing %s" % lcmtype_name
-        except:
-            print("Error importing %s" % lcmtype_name)
+        except Exception as e:
+            print(f"Error importing {lcmtype_name}: {e}")
     return result
 
 
