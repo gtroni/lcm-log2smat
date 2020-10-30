@@ -106,7 +106,7 @@ def make_lcmtype_dictionary():
             _klass = getattr(mod, type_basename)
             _fingerprint = _klass._get_packed_fingerprint()
             result[_fingerprint] = _klass
-        except Exception as e:
+        except Exception as e:  # pylint: disable=W0703 (broad-except)
             print(f"Error importing {lcmtype_name}: {e}")
     return result
 
