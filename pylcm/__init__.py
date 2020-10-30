@@ -1,4 +1,4 @@
-"""Converts a LCM log to a "structured" format (.pkl or .mat)"""
+"""Convert a LCM log to a python dict and optionally export .pkl or .mat."""
 
 # !/usr/bin/python
 #
@@ -166,7 +166,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
 
 
 def delete_status_message(stat_msg):
-    """Removes stat_msg from stderr."""
+    """Remove stat_msg from stderr."""
     if stat_msg:
         sys.stderr.write("\r")
         sys.stderr.write(" " * (len(stat_msg)))
