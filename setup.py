@@ -9,5 +9,7 @@ setuptools.setup(
     url="https://github.com/DexaiRobotics/lcm-log2smat/",
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
-    install_requires=["scipy>=1.4.1",],
+    install_requires=[
+        "scipy>=1.4.1",
+    ],
 )

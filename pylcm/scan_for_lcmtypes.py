@@ -1,5 +1,5 @@
-"""Script to find lcm types."""
-#!/usr/bin/python
+#!/usr/bin/python3
+"""Find all lcmtypes defined in the system by waorking through the paths."""
 import os
 import pyclbr
 import re
@@ -7,13 +7,13 @@ import sys
 from io import open
 
 
-def find_lcmtypes():
+def find_lcmtypes():  # noqa: C901, pylint: disable=R0912
     """Find lcm types."""
     alpha_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
     valid_chars = set(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
     )
-    lcmtypes = []
+    _lcmtypes = []
     regex = re.compile("_get_packed_fingerprint")
 
     dirs_to_check = sys.path
@@ -60,13 +60,13 @@ def find_lcmtypes():
                 else:
                     modname = mod_basename
                 try:
-                    klass = pyclbr.readmodule(modname)[mod_basename]
+                    _klass = pyclbr.readmodule(modname)[mod_basename]
                     if (
-                        "decode" in klass.methods
-                        and "_get_packed_fingerprint" in klass.methods
+                        "decode" in _klass.methods
+                        and "_get_packed_fingerprint" in _klass.methods
                     ):
 
-                        lcmtypes.append(modname)
+                        _lcmtypes.append(modname)
                 except ImportError:
                     continue
                 except KeyError:
@@ -83,7 +83,7 @@ def find_lcmtypes():
             ]
             del dirs[:]
             dirs.extend(subdirs_to_traverse)
-    return lcmtypes
+    return _lcmtypes
 
 
 def make_lcmtype_dictionary():
@@ -96,23 +96,18 @@ def make_lcmtype_dictionary():
 
     The primary use for this dictionary is to automatically identify and
     decode an LCM message.
-
     """
-    lcmtypes = find_lcmtypes()
-
     result = {}
-
-    for lcmtype_name in lcmtypes:
+    for lcmtype_name in find_lcmtypes():
         try:
             __import__(lcmtype_name)
             mod = sys.modules[lcmtype_name]
             type_basename = lcmtype_name.split(".")[-1]
-            klass = getattr(mod, type_basename)
-            fingerprint = klass._get_packed_fingerprint()
-            result[fingerprint] = klass
-            # print "importing %s" % lcmtype_name
-        except:
-            print("Error importing %s" % lcmtype_name)
+            _klass = getattr(mod, type_basename)
+            _fingerprint = _klass._get_packed_fingerprint()
+            result[_fingerprint] = _klass
+        except Exception as e:  # pylint: disable=W0703 (broad-except)
+            print(f"Error importing {lcmtype_name}: {e}")
     return result
 
 

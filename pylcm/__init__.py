@@ -1,6 +1,6 @@
-"""Converts a LCM log to a "structured" format (.pkl or .mat)"""
+"""Convert a LCM log to a python dict and optionally export .pkl or .mat."""
 
-# !/usr/bin/python
+# !/usr/bin/python3
 #
 # Converts a LCM log to a "structured" format that is easier to work with
 # external tools such as Matlab or Python. The set of messages on a given
@@ -15,12 +15,11 @@ import re
 import sys
 import zlib
 
+import imageio
 import numpy as np
 import scipy.io.matlab.mio
 from bot_core import image_t
 from lcm import EventLog
-
-import imageio
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
 
@@ -82,7 +81,7 @@ def msg_getconstants(lcm_msg):
     return constantslist
 
 
-def msg_to_dict(  # noqa: C901
+def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
     msg,
@@ -95,7 +94,7 @@ def msg_to_dict(  # noqa: C901
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
     if e_channel not in data:
-        data[e_channel] = dict()
+        data[e_channel] = {}
 
         # Iterate each constant of the LCM message
         constants = msg_getconstants(msg)
@@ -167,7 +166,7 @@ def msg_to_dict(  # noqa: C901
 
 
 def delete_status_message(stat_msg):
-    """Removes stat_msg from stderr."""
+    """Remove stat_msg from stderr."""
     if stat_msg:
         sys.stderr.write("\r")
         sys.stderr.write(" " * (len(stat_msg)))
@@ -177,28 +176,26 @@ def delete_status_message(stat_msg):
 
 def parse_lcm(  # noqa: C901
     fname, opts=None, decompress_jpeg=True, depth_image_shape=(480, 640)
-):  # noqa: C901 pylint: disable=R1710
+):  # pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
 
     Keyword arguments:
-    fname -- path to LCM log
+    fname -- absolute path to LCM log, relative path is not supported
     opts -- dict of options. Default None returns dict
     decompress_jpeg -- whether or not to decompress jpeg. Default True
-    depth_image_shape -- dimensions of depth image in LCM log. 
+    depth_image_shape -- dimensions of depth image in LCM log.
                          Default assumed to be 640x480.
     """
     # Default options
     verbose = False
     printOutput = False
     savePickle = False
+    saveMat = False
     channelsToIgnore = ""
     checkIgnore = False
     channelsToProcess = ".*"
-    return_dict = False
-    if opts is None:
-        return_dict = True
-    else:
+    if opts is not None:
         for o, a in opts.items():
             if o == "-v":
                 verbose = True
@@ -208,6 +205,8 @@ def parse_lcm(  # noqa: C901
                 printOutput = True
             elif o in ("-k", "--pickle"):
                 savePickle = True
+            elif o in ("-m", "--mat"):
+                saveMat = True
             elif o in ("-o", "--outfile="):
                 outFname = a
                 printFname = a
@@ -226,7 +225,7 @@ def parse_lcm(  # noqa: C901
 
         if savePickle:
             outFname = outDir + "/" + outFname + ".pkl"
-        else:
+        elif saveMat:
             outFname = outFname.replace(".", "_")
             outFname = outFname.replace("-", "_")
             outFname = outDir + "/" + outFname + ".mat"
@@ -236,7 +235,7 @@ def parse_lcm(  # noqa: C901
     outBaseName = ".".join(os.path.basename(outFname).split(".")[0:-1])
 
     data = {}
-    if printOutput:
+    if verbose:
         print("Searching for LCM types...")
     type_db = make_lcmtype_dictionary()
 
@@ -245,9 +244,7 @@ def parse_lcm(  # noqa: C901
     log = EventLog(fname, "r")
 
     if printOutput:
-        sys.stdout.write(
-            "opened % s, printing output to %s \n" % (fname, printFname)
-        )
+        print("opened % s, printing output to %s \n" % (fname, printFname))
     ignored_channels = []
     msgCount = 0
     status_msg = ""
@@ -312,41 +309,38 @@ def parse_lcm(  # noqa: C901
             depth_image_shape=depth_image_shape,
         )
 
-    if return_dict:
-        return data
-
     delete_status_message(status_msg)
-    if not printOutput:
-        sys.stderr.write(
-            "loaded all %d messages, saving to % s\n" % (msgCount, outFname)
-        )
-        if savePickle:
-            # Pickle the list/dictonary using the highest protocol available.
-            with open(outFname, "wb") as f:
-                pickle.dump(data, f, -1)
+    if verbose:
+        print(f"Loaded all {msgCount} messages")
+    if savePickle:  # Pickle format using the highest protocol available
+        print(f"Saving pickle to: {outFname}")
+        with open(outFname, "wb") as f:
+            pickle.dump(data, f, -1)
+    elif saveMat:  # Matlab format using scipy
+        print(f"Saving pickle to: {outFname}")
+        if sys.version_info < (2, 6):
+            scipy.io.mio.savemat(outFname, data)
         else:
-            # Matlab format using scipy
-            if sys.version_info < (2, 6):
-                scipy.io.mio.savemat(outFname, data)
-            else:
-                scipy.io.matlab.mio.savemat(outFname, data, oned_as="row")
+            scipy.io.matlab.mio.savemat(outFname, data, oned_as="row")
 
-            with open(
-                dirname + "/" + outBaseName + ".m", "w", encoding="utf-8"
-            ) as mfile:
-                loadFunc = """function [d imFnames]={_outBaseName}()
+        with open(
+            dirname + "/" + outBaseName + ".m", "w", encoding="utf-8"
+        ) as mfile:
+            loadFunc = """function [d imFnames]={_outBaseName}()
 full_fname = '{_outFname}';
 fname = '{_fullPathName}';
 if (exist(full_fname,'file'))
-    filename = full_fname;
+filename = full_fname;
 else
-    filename = fname;
+filename = fname;
 end
 d = load(filename);
 """.format(
-                    _outBaseName=outBaseName,
-                    _outFname=outFname,
-                    _fullPathName=fullPathName,
-                )
-                print(loadFunc)
-                mfile.write(loadFunc)
+                _outBaseName=outBaseName,
+                _outFname=outFname,
+                _fullPathName=fullPathName,
+            )
+            print(loadFunc)
+            mfile.write(loadFunc)
+
+    return data
