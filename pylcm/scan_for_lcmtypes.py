@@ -13,7 +13,7 @@ def find_lcmtypes():  # noqa: C901
     valid_chars = set(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
     )
-    lcmtypes = []
+    _lcmtypes = []
     regex = re.compile("_get_packed_fingerprint")
 
     dirs_to_check = sys.path
@@ -66,7 +66,7 @@ def find_lcmtypes():  # noqa: C901
                         and "_get_packed_fingerprint" in klass.methods
                     ):
 
-                        lcmtypes.append(modname)
+                        _lcmtypes.append(modname)
                 except ImportError:
                     continue
                 except KeyError:
@@ -83,7 +83,7 @@ def find_lcmtypes():  # noqa: C901
             ]
             del dirs[:]
             dirs.extend(subdirs_to_traverse)
-    return lcmtypes
+    return _lcmtypes
 
 
 def make_lcmtype_dictionary():
