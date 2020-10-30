@@ -81,7 +81,7 @@ def msg_getconstants(lcm_msg):
     return constantslist
 
 
-def msg_to_dict(  # noqa: C901
+def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
     msg,
