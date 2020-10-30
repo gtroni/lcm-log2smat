@@ -310,37 +310,37 @@ def parse_lcm(  # noqa: C901
         )
 
     delete_status_message(status_msg)
-    if not printOutput:
-        print("loaded all %d messages, saving to % s\n" % (msgCount, outFname))
-        if savePickle:
-            # Pickle the list/dictonary using the highest protocol available.
-            with open(outFname, "wb") as f:
-                pickle.dump(data, f, -1)
-        elif saveMat:
-            # Matlab format using scipy
-            if sys.version_info < (2, 6):
-                scipy.io.mio.savemat(outFname, data)
-            else:
-                scipy.io.matlab.mio.savemat(outFname, data, oned_as="row")
+    if verbose:
+        print(f"Loaded all {msgCount} messages")
+    if savePickle:  # Pickle format using the highest protocol available
+        print(f"Saving pickle to: {outFname}")
+        with open(outFname, "wb") as f:
+            pickle.dump(data, f, -1)
+    elif saveMat:  # Matlab format using scipy
+        print(f"Saving pickle to: {outFname}")
+        if sys.version_info < (2, 6):
+            scipy.io.mio.savemat(outFname, data)
+        else:
+            scipy.io.matlab.mio.savemat(outFname, data, oned_as="row")
 
-            with open(
-                dirname + "/" + outBaseName + ".m", "w", encoding="utf-8"
-            ) as mfile:
-                loadFunc = """function [d imFnames]={_outBaseName}()
+        with open(
+            dirname + "/" + outBaseName + ".m", "w", encoding="utf-8"
+        ) as mfile:
+            loadFunc = """function [d imFnames]={_outBaseName}()
 full_fname = '{_outFname}';
 fname = '{_fullPathName}';
 if (exist(full_fname,'file'))
-    filename = full_fname;
+filename = full_fname;
 else
-    filename = fname;
+filename = fname;
 end
 d = load(filename);
 """.format(
-                    _outBaseName=outBaseName,
-                    _outFname=outFname,
-                    _fullPathName=fullPathName,
-                )
-                print(loadFunc)
-                mfile.write(loadFunc)
+                _outBaseName=outBaseName,
+                _outFname=outFname,
+                _fullPathName=fullPathName,
+            )
+            print(loadFunc)
+            mfile.write(loadFunc)
 
     return data
