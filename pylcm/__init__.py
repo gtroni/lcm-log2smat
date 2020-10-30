@@ -15,12 +15,11 @@ import re
 import sys
 import zlib
 
+import imageio
 import numpy as np
 import scipy.io.matlab.mio
 from bot_core import image_t
 from lcm import EventLog
-
-import imageio
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
 
@@ -185,7 +184,7 @@ def parse_lcm(  # noqa: C901
     fname -- path to LCM log
     opts -- dict of options. Default None returns dict
     decompress_jpeg -- whether or not to decompress jpeg. Default True
-    depth_image_shape -- dimensions of depth image in LCM log. 
+    depth_image_shape -- dimensions of depth image in LCM log.
                          Default assumed to be 640x480.
     """
     # Default options
