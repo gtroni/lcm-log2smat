@@ -60,10 +60,10 @@ def find_lcmtypes():  # noqa: C901
                 else:
                     modname = mod_basename
                 try:
-                    klass = pyclbr.readmodule(modname)[mod_basename]
+                    _klass = pyclbr.readmodule(modname)[mod_basename]
                     if (
-                        "decode" in klass.methods
-                        and "_get_packed_fingerprint" in klass.methods
+                        "decode" in _klass.methods
+                        and "_get_packed_fingerprint" in _klass.methods
                     ):
 
                         _lcmtypes.append(modname)
@@ -106,9 +106,9 @@ def make_lcmtype_dictionary():
             __import__(lcmtype_name)
             mod = sys.modules[lcmtype_name]
             type_basename = lcmtype_name.split(".")[-1]
-            klass = getattr(mod, type_basename)
-            fingerprint = klass._get_packed_fingerprint()
-            result[fingerprint] = klass
+            _klass = getattr(mod, type_basename)
+            fingerprint = _klass._get_packed_fingerprint()
+            result[fingerprint] = _klass
         except Exception as e:
             print(f"Error importing {lcmtype_name}: {e}")
     return result
