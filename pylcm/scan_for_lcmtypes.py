@@ -7,7 +7,7 @@ import sys
 from io import open
 
 
-def find_lcmtypes():  # noqa: C901
+def find_lcmtypes():  # noqa: C901, pylint: disable=R0912
     """Find lcm types."""
     alpha_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
     valid_chars = set(
