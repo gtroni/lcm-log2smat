@@ -104,8 +104,8 @@ def make_lcmtype_dictionary():
             mod = sys.modules[lcmtype_name]
             type_basename = lcmtype_name.split(".")[-1]
             _klass = getattr(mod, type_basename)
-            fingerprint = _klass._get_packed_fingerprint()
-            result[fingerprint] = _klass
+            _fingerprint = _klass._get_packed_fingerprint()
+            result[_fingerprint] = _klass
         except Exception as e:
             print(f"Error importing {lcmtype_name}: {e}")
     return result
