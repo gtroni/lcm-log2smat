@@ -97,11 +97,8 @@ def make_lcmtype_dictionary():
     The primary use for this dictionary is to automatically identify and
     decode an LCM message.
     """
-    lcmtypes = find_lcmtypes()
-
     result = {}
-
-    for lcmtype_name in lcmtypes:
+    for lcmtype_name in find_lcmtypes():
         try:
             __import__(lcmtype_name)
             mod = sys.modules[lcmtype_name]
