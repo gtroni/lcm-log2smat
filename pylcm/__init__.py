@@ -245,7 +245,7 @@ def parse_lcm(  # noqa: C901
 
     if printOutput:
         print("opened % s, printing output to %s \n" % (fname, printFname))
-    ignored_channels = []
+    ignored_channels = {}  # channel name: packed fingerprint
     msgCount = 0
     status_msg = ""
     startTime = 0
@@ -266,7 +266,7 @@ def parse_lcm(  # noqa: C901
             if verbose:
                 status_msg = delete_status_message(status_msg)
                 sys.stderr.write("ignoring channel %s\n" % e.channel)
-            ignored_channels.append(e.channel)
+            ignored_channels[e.channel] = None
             continue
 
         packed_fingerprint = e.data[:8]
@@ -275,9 +275,10 @@ def parse_lcm(  # noqa: C901
             if verbose:
                 status_msg = delete_status_message(status_msg)
                 sys.stderr.write(
-                    "ignoring channel %s -not a known LCM type\n" % e.channel
+                    f"ignoring channel {e.channel}: "
+                    f"{packed_fingerprint} is not a known LCM type\n"
                 )
-            ignored_channels.append(e.channel)
+            ignored_channels[e.channel] = packed_fingerprint
             continue
         try:
             msg = lcmtype.decode(e.data)
@@ -308,7 +309,11 @@ def parse_lcm(  # noqa: C901
             decompress_jpeg=decompress_jpeg,
             depth_image_shape=depth_image_shape,
         )
-
+    if ignored_channels:
+        print(
+            f"Ignored {len(ignored_channels)} channels, "
+            f"packed fingerprint: {ignored_channels}"
+        )
     delete_status_message(status_msg)
     if verbose:
         print(f"Loaded all {msgCount} messages")
