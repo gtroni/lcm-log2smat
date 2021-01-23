@@ -17,6 +17,8 @@ def find_lcmtypes():  # noqa: C901, pylint: disable=R0912
     regex = re.compile("_get_packed_fingerprint")
 
     dirs_to_check = sys.path
+    if os.getenv("LCMPATH"):
+        dirs_to_check += os.getenv("LCMPATH").split(":")
 
     for dir_name in dirs_to_check:
         for root, dirs, files in os.walk(dir_name):
