@@ -312,7 +312,7 @@ def parse_lcm(  # noqa: C901
     if ignored_channels:
         print(
             f"Ignored {len(ignored_channels)} channels, "
-            f"packed fingerprint: {ignored_channels}"
+            f"unkonwn packed fingerprint: {ignored_channels}"
         )
     delete_status_message(status_msg)
     if verbose:
