@@ -23,6 +23,10 @@ from lcm import EventLog
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
 
+# make dict and import discovered LCM types upon import
+# to avoid multiprocessing crashing
+TYPE_DB = make_lcmtype_dictionary()
+
 long = int
 unicode = int
 longOpts = [
@@ -235,10 +239,6 @@ def parse_lcm(  # noqa: C901
     outBaseName = ".".join(os.path.basename(outFname).split(".")[0:-1])
 
     data = {}
-    if verbose:
-        print("Searching for LCM types...")
-    type_db = make_lcmtype_dictionary()
-
     channelsToProcess = re.compile(channelsToProcess)
     channelsToIgnore = re.compile(channelsToIgnore)
     log = EventLog(fname, "r")
@@ -270,7 +270,7 @@ def parse_lcm(  # noqa: C901
             continue
 
         packed_fingerprint = e.data[:8]
-        lcmtype = type_db.get(packed_fingerprint, None)
+        lcmtype = TYPE_DB.get(packed_fingerprint, None)
         if not lcmtype:
             if verbose:
                 status_msg = delete_status_message(status_msg)
