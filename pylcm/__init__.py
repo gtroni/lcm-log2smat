@@ -93,7 +93,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     verbose=False,
     lcm_timestamp=-1,
     decompress_jpeg=True,
-    depth_image_shape=(480, 640),
+    depth_dtype="uint16",
 ):
     """Add information in msg to the dictionary data[e_channel]."""
     # Initializing channel
@@ -127,7 +127,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 status_msg,
                 verbose,
                 decompress_jpeg=decompress_jpeg,
-                depth_image_shape=depth_image_shape,
+                depth_dtype=depth_dtype,
             )
 
         # Handles getting RBGD data from 'images' field
@@ -136,15 +136,13 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
             and isinstance(my_value, list)
             and isinstance(my_value[0], image_t)
         ):
-            if decompress_jpeg:
-                # Read image_t.data to numpy arrays
+            if decompress_jpeg:  # Read image_t.data to numpy arrays
                 rgb_image = np.array(imageio.imread(my_value[0].data))
-            else:
-                # Else, keep RGB data compressed
+            else:  # keep RGB data compressed
                 rgb_image = my_value[0].data
             depth_data = zlib.decompress(my_value[1].data)
-            depth_image = np.frombuffer(depth_data, dtype="uint16").reshape(
-                depth_image_shape
+            depth_image = np.frombuffer(depth_data, dtype=depth_dtype).reshape(
+                my_value[1].height, my_value[1].width
             )
             try:
                 data[e_channel]["RGB"].append(rgb_image)
@@ -179,7 +177,7 @@ def delete_status_message(stat_msg):
 
 
 def parse_lcm(  # noqa: C901
-    fname, opts=None, decompress_jpeg=True, depth_image_shape=(480, 640)
+    fname, opts=None, decompress_jpeg=True, depth_dtype="uint16"
 ):  # pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
@@ -307,7 +305,7 @@ def parse_lcm(  # noqa: C901
             verbose,
             (e.timestamp - startTime) / 1e6,
             decompress_jpeg=decompress_jpeg,
-            depth_image_shape=depth_image_shape,
+            depth_dtype=depth_dtype,
         )
     if ignored_channels:
         print(
