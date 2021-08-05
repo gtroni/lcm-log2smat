@@ -18,7 +18,7 @@ import zlib
 import imageio
 import numpy as np
 import scipy.io.matlab.mio
-from bot_core import image_t
+from drake import lcmt_image
 from lcm import EventLog
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
@@ -134,9 +134,9 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
         elif (
             field == "images"
             and isinstance(my_value, list)
-            and isinstance(my_value[0], image_t)
+            and isinstance(my_value[0], lcmt_image)
         ):
-            if decompress_jpeg:  # Read image_t.data to numpy arrays
+            if decompress_jpeg:  # Read lcmt_image.data to numpy arrays
                 rgb_image = np.array(imageio.imread(my_value[0].data))
             else:  # keep RGB data compressed
                 rgb_image = my_value[0].data
