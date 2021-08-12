@@ -15,11 +15,14 @@ import re
 import sys
 import zlib
 
-import imageio
 import numpy as np
 import scipy.io.matlab.mio
-from bot_core import image_t
 from lcm import EventLog
+
+try:
+    import imageio
+except ImportError:
+    pass  # no jpeg decompression
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
 
@@ -85,6 +88,14 @@ def msg_getconstants(lcm_msg):
     return constantslist
 
 
+# the image type in the lcmlog is required to have at least
+# data, width, and height attributres
+_SUPPORTED_IMAGE_TYPES = {
+    "<class 'bot_core.image_t.image_t'>",
+    "<class 'drake.lcmt_image.lcmt_image'>",
+}
+
+
 def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
@@ -99,19 +110,15 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     # Initializing channel
     if e_channel not in data:
         data[e_channel] = {}
-
         # Iterate each constant of the LCM message
         constants = msg_getconstants(msg)
         for const in constants:
-            my_value = None
-            my_value = eval("msg." + const)  # pylint: disable=W0123
-            data[e_channel][const[:31]] = my_value
+            data[e_channel][const[:31]] = getattr(msg, const)
     # Get lcm fields and constants
     fields = msg_getfields(msg)
     # Iterate each field of the LCM message
     for field in fields:
-        my_value = None
-        my_value = eval(" msg." + field)  # pylint: disable=W0123
+        my_value = getattr(msg, field)
         if isinstance(my_value, (int, long, float, str, tuple, unicode)):
             try:
                 data[e_channel][field[:31]].append(my_value)
@@ -119,11 +126,10 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 data[e_channel][field[:31]] = [my_value]
 
         elif hasattr(my_value, "__slots__"):
-            submsg = eval("msg." + field)  # pylint: disable=W0123
             msg_to_dict(
                 data[e_channel],
                 field[:31],
-                submsg,
+                getattr(msg, field),
                 status_msg,
                 verbose,
                 decompress_jpeg=decompress_jpeg,
@@ -134,9 +140,9 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
         elif (
             field == "images"
             and isinstance(my_value, list)
-            and isinstance(my_value[0], image_t)
+            and str(type(my_value[0])) in _SUPPORTED_IMAGE_TYPES
         ):
-            if decompress_jpeg:  # Read image_t.data to numpy arrays
+            if decompress_jpeg:  # Read lcmt_image.data to numpy arrays
                 rgb_image = np.array(imageio.imread(my_value[0].data))
             else:  # keep RGB data compressed
                 rgb_image = my_value[0].data
@@ -270,11 +276,12 @@ def parse_lcm(  # noqa: C901
         packed_fingerprint = e.data[:8]
         lcmtype = TYPE_DB.get(packed_fingerprint, None)
         if not lcmtype:
-            if verbose:
+            if verbose and packed_fingerprint != b"lcm self":
+                # ignore  b'lcm self' published in 'LCM_SELF_TEST' channel
                 status_msg = delete_status_message(status_msg)
                 sys.stderr.write(
-                    f"ignoring channel {e.channel}: "
-                    f"{packed_fingerprint} is not a known LCM type\n"
+                    f"PyLCM: ignoring channel {e.channel}, "
+                    f"unknown LCM type with fingerprint {packed_fingerprint}\n"
                 )
             ignored_channels[e.channel] = packed_fingerprint
             continue
