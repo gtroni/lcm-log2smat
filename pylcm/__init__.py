@@ -285,7 +285,7 @@ def parse_lcm(  # noqa: C901
                 # ignore  b'lcm self' published in 'LCM_SELF_TEST' channel
                 status_msg = delete_status_message(status_msg)
                 sys.stderr.write(
-                    f"PyLCM: ignoring channel {e.channel}: "
+                    f"PyLCM: ignoring channel {e.channel}, "
                     f"unknown LCM type with fingerprint {packed_fingerprint}\n"
                 )
             ignored_channels[e.channel] = packed_fingerprint
