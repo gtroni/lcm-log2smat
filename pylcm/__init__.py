@@ -110,19 +110,15 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     # Initializing channel
     if e_channel not in data:
         data[e_channel] = {}
-
         # Iterate each constant of the LCM message
         constants = msg_getconstants(msg)
         for const in constants:
-            my_value = None
-            my_value = eval("msg." + const)  # pylint: disable=W0123
-            data[e_channel][const[:31]] = my_value
+            data[e_channel][const[:31]] = getattr(msg, const)
     # Get lcm fields and constants
     fields = msg_getfields(msg)
     # Iterate each field of the LCM message
     for field in fields:
-        my_value = None
-        my_value = eval(" msg." + field)  # pylint: disable=W0123
+        my_value = getattr(msg, field)
         if isinstance(my_value, (int, long, float, str, tuple, unicode)):
             try:
                 data[e_channel][field[:31]].append(my_value)
@@ -130,11 +126,10 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 data[e_channel][field[:31]] = [my_value]
 
         elif hasattr(my_value, "__slots__"):
-            submsg = eval("msg." + field)  # pylint: disable=W0123
             msg_to_dict(
                 data[e_channel],
                 field[:31],
-                submsg,
+                getattr(msg, field),
                 status_msg,
                 verbose,
                 decompress_jpeg=decompress_jpeg,
