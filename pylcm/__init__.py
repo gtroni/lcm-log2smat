@@ -281,11 +281,12 @@ def parse_lcm(  # noqa: C901
         packed_fingerprint = e.data[:8]
         lcmtype = TYPE_DB.get(packed_fingerprint, None)
         if not lcmtype:
-            if verbose:
+            if verbose and packed_fingerprint != b"lcm self":
+                # ignore  b'lcm self' published in 'LCM_SELF_TEST' channel
                 status_msg = delete_status_message(status_msg)
                 sys.stderr.write(
-                    f"ignoring channel {e.channel}: "
-                    f"{packed_fingerprint} is not a known LCM type\n"
+                    f"PyLCM: ignoring channel {e.channel}: "
+                    f"unknown LCM type with fingerprint {packed_fingerprint}\n"
                 )
             ignored_channels[e.channel] = packed_fingerprint
             continue
