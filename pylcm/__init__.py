@@ -314,7 +314,10 @@ def parse_lcm(  # noqa: C901
             decompress_jpeg=decompress_jpeg,
             depth_dtype=depth_dtype,
         )
-    if ignored_channels:
+    if ignored_channels and not (
+        len(ignored_channels) == 1
+        and next(iter(ignored_channels)) == "LCM_SELF_TEST"
+    ):
         print(
             f"Ignored {len(ignored_channels)} channels, "
             f"unkonwn packed fingerprint: {ignored_channels}"
