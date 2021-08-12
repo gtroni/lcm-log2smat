@@ -15,10 +15,14 @@ import re
 import sys
 import zlib
 
-import imageio
 import numpy as np
 import scipy.io.matlab.mio
 from lcm import EventLog
+
+try:
+    import imageio
+except ImportError:
+    pass  # no jpeg decompression
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
 
