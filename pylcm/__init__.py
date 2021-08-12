@@ -18,7 +18,6 @@ import zlib
 import imageio
 import numpy as np
 import scipy.io.matlab.mio
-from drake import lcmt_image
 from lcm import EventLog
 
 from .scan_for_lcmtypes import make_lcmtype_dictionary
@@ -85,6 +84,14 @@ def msg_getconstants(lcm_msg):
     return constantslist
 
 
+# the image type in the lcmlog is required to have at least
+# data, width, and height attributres
+_SUPPORTED_IMAGE_TYPES = {
+    "<class 'bot_core.image_t.image_t'>",
+    "<class 'drake.lcmt_image.lcmt_image'>",
+}
+
+
 def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
@@ -134,7 +141,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
         elif (
             field == "images"
             and isinstance(my_value, list)
-            and isinstance(my_value[0], lcmt_image)
+            and str(type(my_value[0])) in _SUPPORTED_IMAGE_TYPES
         ):
             if decompress_jpeg:  # Read lcmt_image.data to numpy arrays
                 rgb_image = np.array(imageio.imread(my_value[0].data))
