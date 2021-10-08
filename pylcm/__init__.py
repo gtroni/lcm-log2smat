@@ -96,7 +96,7 @@ _SUPPORTED_IMAGE_TYPES = {
 }
 
 
-def msg_to_dict(  # noqa: C901, pylint: disable=R0912
+def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
     msg,
@@ -126,7 +126,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 data[e_channel][field[:31]] = [my_value]
 
         elif hasattr(my_value, "__slots__"):
-            msg_to_dict(
+            append_msg_to_dict(
                 data[e_channel],
                 field[:31],
                 getattr(msg, field),
@@ -304,7 +304,7 @@ def parse_lcm(  # noqa: C901
             sys.stderr.write(status_msg)
             sys.stderr.flush()
 
-        msg_to_dict(
+        append_msg_to_dict(
             data,
             e.channel,
             msg,
