@@ -101,7 +101,7 @@ def msg_to_dict(
     msg,
     lcm_timestamp=-1,
 ):
-    """Convert a single message to dict recursively without global data."""
+    """Convert a single message to dict recursively without root data."""
     data = {}
     if hasattr(msg, "__slots__"):
         for const in msg_getconstants(msg):
@@ -146,7 +146,7 @@ def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
     decompress_jpeg=True,
     depth_dtype="uint16",
 ):
-    """Append msg to the global data[e_channel]."""
+    """Append msg to the root data[e_channel] (recursively)."""
     # Initializing channel
     if e_channel not in data:
         data[e_channel] = {}
