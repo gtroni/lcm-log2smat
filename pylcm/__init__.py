@@ -47,7 +47,7 @@ longOpts = [
 def usage():
     """Options for extracting the lcm log data."""
     _, sname = os.path.split(sys.argv[0])
-    sys.stderr.write("usage: % s %s < filename > \n" % (sname, str(longOpts)))
+    sys.stderr.write(f"usage: {sname} {longOpts} < filename > \n")
     print(
         """
     -h --help                 print this message
@@ -96,7 +96,47 @@ _SUPPORTED_IMAGE_TYPES = {
 }
 
 
-def msg_to_dict(  # noqa: C901, pylint: disable=R0912
+def msg_to_dict(
+    channel,
+    msg,
+    lcm_timestamp=-1,
+):
+    """Convert a single message to dict recursively without root data."""
+    data = {}
+    if hasattr(msg, "__slots__"):
+        for const in msg_getconstants(msg):
+            data[const[:31]] = getattr(msg, const)
+    for field in msg_getfields(msg):
+        value = getattr(msg, field)
+        if isinstance(value, (int, long, float, str, tuple, unicode)):
+            data[field] = value
+        elif hasattr(value, "__slots__"):
+            data[field] = msg_to_dict(
+                channel, value, lcm_timestamp=lcm_timestamp
+            )
+        elif isinstance(value, list):
+            if isinstance(value[0], list):
+                # e.g. lcmt_polynomial_matrix polynomial_matrices[num_segments]
+                data[field] = [
+                    tuple(
+                        msg_to_dict(channel, item, lcm_timestamp=lcm_timestamp)
+                        for item in row
+                    )
+                    for row in value
+                ]
+            else:
+                data[field] = tuple(
+                    msg_to_dict(channel, item, lcm_timestamp=lcm_timestamp)
+                    for item in value
+                )
+        else:
+            print(f"ignoring field {field} from channel {channel}")
+    if lcm_timestamp > 0:
+        data["lcm_timestamp"] = lcm_timestamp
+    return data
+
+
+def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
     data,
     e_channel,
     msg,
@@ -106,7 +146,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
     decompress_jpeg=True,
     depth_dtype="uint16",
 ):
-    """Add information in msg to the dictionary data[e_channel]."""
+    """Append msg to the root data[e_channel] (recursively)."""
     # Initializing channel
     if e_channel not in data:
         data[e_channel] = {}
@@ -126,7 +166,7 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 data[e_channel][field[:31]] = [my_value]
 
         elif hasattr(my_value, "__slots__"):
-            msg_to_dict(
+            append_msg_to_dict(
                 data[e_channel],
                 field[:31],
                 getattr(msg, field),
@@ -156,13 +196,16 @@ def msg_to_dict(  # noqa: C901, pylint: disable=R0912
             except KeyError:
                 data[e_channel]["RGB"] = [rgb_image]
                 data[e_channel]["depth"] = [depth_image]
+        elif isinstance(my_value, list):
+            data[e_channel][field] = tuple(
+                msg_to_dict(e_channel, item, lcm_timestamp=lcm_timestamp)
+                for item in my_value
+            )
         else:
-            if verbose:
-                status_msg = delete_status_message(status_msg)
-                sys.stderr.write(
-                    "ignoring field %s from channel %s. \n"
-                    % (field, e_channel)
-                )
+            status_msg = delete_status_message(status_msg)
+            sys.stderr.write(
+                f"ignoring field {field} from channel {e_channel}"
+            )
             continue
 
     # Add extra field with lcm_timestamp
@@ -248,8 +291,9 @@ def parse_lcm(  # noqa: C901
     log = EventLog(fname, "r")
 
     if printOutput:
-        print("opened % s, printing output to %s \n" % (fname, printFname))
-    ignored_channels = {}  # channel name: packed fingerprint
+        print(f"opened {fname}, printing output to {printFname}")
+    # channel name: packed fingerprint
+    ignored_channels = {"LCM_SELF_TEST": b"lcm self"}
     msgCount = 0
     status_msg = ""
     startTime = 0
@@ -269,42 +313,36 @@ def parse_lcm(  # noqa: C901
         ) or (not channelsToProcess.match(e.channel)):
             if verbose:
                 status_msg = delete_status_message(status_msg)
-                sys.stderr.write("ignoring channel %s\n" % e.channel)
+                sys.stderr.write(f"ignoring channel {e.channel}")
             ignored_channels[e.channel] = None
             continue
 
         packed_fingerprint = e.data[:8]
         lcmtype = TYPE_DB.get(packed_fingerprint, None)
         if not lcmtype:
-            if verbose and packed_fingerprint != b"lcm self":
-                # ignore  b'lcm self' published in 'LCM_SELF_TEST' channel
-                status_msg = delete_status_message(status_msg)
-                sys.stderr.write(
-                    f"PyLCM: ignoring channel {e.channel}, "
-                    f"unknown LCM type with fingerprint {packed_fingerprint}\n"
-                )
+            status_msg = delete_status_message(status_msg)
+            sys.stderr.write(
+                f"PyLCM: ignoring channel {e.channel}, "
+                f"unknown LCM type with fingerprint {packed_fingerprint}\n"
+            )
             ignored_channels[e.channel] = packed_fingerprint
             continue
         try:
             msg = lcmtype.decode(e.data)
         except:  # noqa: E722  pylint: disable=W0702
             status_msg = delete_status_message(status_msg)
-            sys.stderr.write(
-                "error: couldn't decode msg on channel %s\n" % e.channel
-            )
+            sys.stderr.write(f"ouldn't decode msg on channel {e.channel}")
             continue
-
         msgCount = msgCount + 1
         if printOutput and (msgCount % 5000) == 0:
-            status_msg = delete_status_message(status_msg)
-            status_msg = "read % d messages, % d %% done" % (
-                msgCount,
-                log.tell() / float(log.size()) * 100,
+            delete_status_message(status_msg)
+            status_msg = (
+                f"read {msgCount} messages, "
+                f"{log.tell() / float(log.size()) * 100}% done"
             )
             sys.stderr.write(status_msg)
             sys.stderr.flush()
-
-        msg_to_dict(
+        append_msg_to_dict(
             data,
             e.channel,
             msg,
@@ -323,7 +361,7 @@ def parse_lcm(  # noqa: C901
             f"unkonwn packed fingerprint: {ignored_channels}"
         )
     delete_status_message(status_msg)
-    if verbose:
+    if verbose or printOutput:
         print(f"Loaded all {msgCount} messages")
     if savePickle:  # Pickle format using the highest protocol available
         print(f"Saving pickle to: {outFname}")
@@ -339,20 +377,16 @@ def parse_lcm(  # noqa: C901
         with open(
             dirname + "/" + outBaseName + ".m", "w", encoding="utf-8"
         ) as mfile:
-            loadFunc = """function [d imFnames]={_outBaseName}()
-full_fname = '{_outFname}';
-fname = '{_fullPathName}';
+            loadFunc = f"""function [d imFnames]={outBaseName}()
+full_fname = '{outFname}';
+fname = '{fullPathName}';
 if (exist(full_fname,'file'))
 filename = full_fname;
 else
 filename = fname;
 end
 d = load(filename);
-""".format(
-                _outBaseName=outBaseName,
-                _outFname=outFname,
-                _fullPathName=fullPathName,
-            )
+"""
             print(loadFunc)
             mfile.write(loadFunc)
 
