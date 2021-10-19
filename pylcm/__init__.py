@@ -143,7 +143,7 @@ def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
     status_msg,
     verbose=False,
     lcm_timestamp=-1,
-    decompress_jpeg=True,
+    decompress_images=True,
     depth_dtype="uint16",
 ):
     """Append msg to the root data[e_channel] (recursively)."""
@@ -172,7 +172,7 @@ def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 getattr(msg, field),
                 status_msg,
                 verbose,
-                decompress_jpeg=decompress_jpeg,
+                decompress_images=decompress_images,
                 depth_dtype=depth_dtype,
             )
 
@@ -182,20 +182,20 @@ def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
             and isinstance(my_value, list)
             and str(type(my_value[0])) in _SUPPORTED_IMAGE_TYPES
         ):
-            if decompress_jpeg:  # Read lcmt_image.data to numpy arrays
-                rgb_image = np.array(imageio.imread(my_value[0].data))
-            else:  # keep RGB data compressed
-                rgb_image = my_value[0].data
-            depth_data = zlib.decompress(my_value[1].data)
-            depth_image = np.frombuffer(depth_data, dtype=depth_dtype).reshape(
-                my_value[1].height, my_value[1].width
-            )
+            if decompress_images:  # Read lcmt_image.data to numpy arrays
+                rgb = np.array(imageio.imread(my_value[0].data))
+                depth_data = zlib.decompress(my_value[1].data)
+                depth = np.frombuffer(depth_data, dtype=depth_dtype).reshape(
+                    my_value[1].height, my_value[1].width
+                )
+            else:  # keep data compressed
+                rgb, depth = my_value[0].data, my_value[1].data
             try:
-                data[e_channel]["RGB"].append(rgb_image)
-                data[e_channel]["depth"].append(depth_image)
+                data[e_channel]["RGB"].append(rgb)
+                data[e_channel]["depth"].append(depth)
             except KeyError:
-                data[e_channel]["RGB"] = [rgb_image]
-                data[e_channel]["depth"] = [depth_image]
+                data[e_channel]["RGB"] = [rgb]
+                data[e_channel]["depth"] = [depth]
         elif isinstance(my_value, list):
             data[e_channel][field] = tuple(
                 msg_to_dict(e_channel, item, lcm_timestamp=lcm_timestamp)
@@ -226,7 +226,7 @@ def delete_status_message(stat_msg):
 
 
 def parse_lcm(  # noqa: C901
-    fname, opts=None, decompress_jpeg=True, depth_dtype="uint16"
+    fname, opts=None, decompress_images=True, depth_dtype="uint16"
 ):  # pylint: disable=R1710
     # pylint: disable=R0914,R0912,R0915
     """Parse LCM log.
@@ -234,7 +234,7 @@ def parse_lcm(  # noqa: C901
     Keyword arguments:
     fname -- absolute path to LCM log, relative path is not supported
     opts -- dict of options. Default None returns dict
-    decompress_jpeg -- whether or not to decompress jpeg. Default True
+    decompress_images -- whether or not to decompress images. Default True.
     depth_image_shape -- dimensions of depth image in LCM log.
                          Default assumed to be 640x480.
     """
@@ -349,7 +349,7 @@ def parse_lcm(  # noqa: C901
             status_msg,
             verbose,
             (e.timestamp - startTime) / 1e6,
-            decompress_jpeg=decompress_jpeg,
+            decompress_images=decompress_images,
             depth_dtype=depth_dtype,
         )
     if ignored_channels and not (
