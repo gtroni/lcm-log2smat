@@ -197,10 +197,13 @@ def append_msg_to_dict(  # noqa: C901, pylint: disable=R0912
                 data[e_channel]["RGB"] = [rgb]
                 data[e_channel]["depth"] = [depth]
         elif isinstance(my_value, list):
-            data[e_channel][field] = tuple(
-                msg_to_dict(e_channel, item, lcm_timestamp=lcm_timestamp)
-                for item in my_value
-            )
+            if len(my_value) and hasattr(my_value[0], "__slots__"):
+                data[e_channel][field] = tuple(
+                    msg_to_dict(e_channel, item, lcm_timestamp=lcm_timestamp)
+                    for item in my_value
+                )
+            else:
+                data[e_channel][field] = my_value
         else:
             status_msg = delete_status_message(status_msg)
             sys.stderr.write(
