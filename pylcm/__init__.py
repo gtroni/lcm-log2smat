@@ -114,7 +114,7 @@ def msg_to_dict(
             data[field] = msg_to_dict(
                 channel, value, lcm_timestamp=lcm_timestamp
             )
-        elif isinstance(value, list):
+        elif isinstance(value, list) and len(value):
             if isinstance(value[0], list):
                 # e.g. lcmt_polynomial_matrix polynomial_matrices[num_segments]
                 data[field] = [
